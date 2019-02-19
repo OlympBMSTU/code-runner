@@ -1,0 +1,10 @@
+1) remove stdafx
+2) tmain 
+3) mb make template but we need to move functions here
+4) remove all pause 
+5) system
+6) getch at the end
+// send by val, by ref, what if return ref to data from struct
+
+// delete \r
+// 
