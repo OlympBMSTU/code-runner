@@ -20,6 +20,7 @@ type Config struct {
 	LogLevel     int
 	LogType      string
 	LogPath      string
+	TimeOutSec   int
 }
 
 func InitConfig() (*Config, error) {
@@ -30,7 +31,7 @@ func InitConfig() (*Config, error) {
 	strings := strings.Split(string(bytes), "\n")
 
 	level, err := strconv.Atoi(strings[6])
-
+	timeOut, err := strconv.Atoi(strings[9])
 	return &Config{
 		strings[0],
 		strings[1],
@@ -41,6 +42,7 @@ func InitConfig() (*Config, error) {
 		level,
 		strings[7],
 		strings[8],
+		timeOut,
 	}, nil
 
 }

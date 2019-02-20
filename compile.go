@@ -146,9 +146,10 @@ func LoopByFiles(files []FileRecord, answers []Answer) error {
 			runnerRec := *runnerRecord
 			runnerRecords = append(runnerRecords, runnerRec)
 			testData := *FindTestData(answers, record.TASKID)
-			if record.UID == "982" {
-				res := RunTests(runnerRec, testData)
-				fmt.Println(res)
+			if record.UID == "4126" {
+				fmt.Println(record.FName)
+				RunTests(runnerRec, testData)
+				// fmt.Println(res)
 
 			}
 			// fmt.Println(res)

@@ -55,9 +55,7 @@ func FindDependecies() []string {
 					}
 				}
 			}
-
 		}
-
 	}
 
 	for _, lib := range arrayDep {
