@@ -35,8 +35,8 @@ func GetFileRecord(line string) FileRecord {
 }
 
 func FilesLoop() ([]FileRecord, error) {
-	cfg, _ := config.GetConfigInstance()
-	fmt.Println(cfg)
+	// cfg, _ := config.GetConfigInstance()
+	// fmt.Println(cfg)
 	var fileRecords []FileRecord
 	bytes, err := ioutil.ReadFile("/home/imber/result.txt") //cfg.FilesPath + "/result.txt")
 	if err != nil {
@@ -58,6 +58,7 @@ func FilesLoop() ([]FileRecord, error) {
 
 func main() {
 	cfg, err := config.GetConfigInstance()
+	InitUserService(*cfg)
 	err = logger.InitLogger(*cfg)
 	if err != nil {
 		log.Println(err.Error())

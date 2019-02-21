@@ -29,9 +29,6 @@ func FindTestData(answers []Answer, exID string) *[]AnswerStrcut {
 	return nil
 }
 
-// COPY public.exercise (id, author_id, level, file_name, subject, tags, is_broken, class, "position", mark, type_olymp, answer, created) FROM stdin;
-
-// [0]
 func GetAnswers() ([]Answer, error) {
 	bytes, err := ioutil.ReadFile("/home/imber/answers.txt")
 	var answers []Answer
@@ -46,11 +43,9 @@ func GetAnswers() ([]Answer, error) {
 	for i, line := range lines {
 		if i > 1 {
 			data := strings.Split(line, "\t")
-			// for _, d := range data {
 			var answer Answer
 			answer.TASKID = data[0]
 			answer.Answer = data[11]
-			// fmt.Println(data[11])
 			var answersStr []AnswerStrcut
 			err := json.Unmarshal([]byte(data[11]), &answersStr)
 
@@ -59,10 +54,8 @@ func GetAnswers() ([]Answer, error) {
 				return answers, err
 			}
 			answer.Answers = answersStr
-			// fmt.Println(answers)
 			answers[i] = answer
 		}
-		// fmt.Println(answers)
 	}
 	return answers, nil
 }

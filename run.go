@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
-	"github.com/OlympBMSTU/code-runner/config"
 	"github.com/OlympBMSTU/code-runner/logger"
 )
 
@@ -19,15 +21,24 @@ type RunResult struct {
 
 func Run(fName string, interp string, input []string, answer []string) RunResult {
 	var cmd *exec.Cmd
-	cfg, _ := config.GetConfigInstance()
+	// cfg, _ := config.GetConfigInstance()
 
-	fmt.Print(cfg.TimeOutSec)
+	path := filepath.Dir(fName)
+	id := filepath.Base(fName)
+	testFile := path + "/" + "input" + id
+
+	inputFile, _ := os.Create(testFile)
+
+	defer inputFile.Close()
+	for _, line := range input {
+		fmt.Fprint(inputFile, line)
+	}
+
 	log := logger.GetLogger()
 	if len(interp) > 0 {
-		// cmd = exec.CommandContext(ctx, "python", fName)
-		cmd = exec.Command("python", fName)
+		cmd = exec.Command("python", fName) //, "<", testFile)
 	} else {
-		cmd = exec.Command(fName) // exec.CommandContext(ctx, fName)
+		cmd = exec.Command(fName) //, "< ", testFile) // exec.CommandContext(ctx, fName)
 	}
 
 	done := make(chan RunResult, 1)
@@ -118,121 +129,47 @@ func Run(fName string, interp string, input []string, answer []string) RunResult
 	}
 }
 
+type UserTest struct {
+	ID     int
+	Input  []string
+	Output []string
+	Mark   int
+}
+
 type TestResult struct {
+	TotalMark   int
+	TestResults []UserTest
 }
 
 func RunTests(runRec RunnerRecord, testData []AnswerStrcut) TestResult {
 	totalMark := 0
+	testRes := make([]UserTest, len(testData))
 	for i, test := range testData {
+		testRes[i].ID = test.ID
+		testRes[i].Input = test.Input
+		testRes[i].Mark = 0
+		fmt.Println(fmt.Sprintf("Running exercise: %s And Test %d\n Path %s\n Its input: %v\n Expectiong output: %v ", runRec.EXID, test.ID, runRec.FilePath, test.Input, test.Output))
 		res := Run(runRec.FilePath, runRec.Interpretator, test.Input, test.Output)
+		var output string
 		if !res.IsError {
-			if res.Output == test.Output[i] {
-				totalMark += test.Mark
+			resData := strings.Trim(res.Output, "\n")
+			for _, data := range test.Output {
+				if data == resData {
+					totalMark += test.Mark
+					testRes[i].Mark = test.Mark
+				}
 			}
+			output = resData
+			fmt.Println(fmt.Sprintf("State OK\n Result %s %d", res.Output, totalMark))
+		} else {
+			fmt.Println(fmt.Sprintf("State Error\n Result %s", res.ErrorOutput))
+			output = res.ErrorOutput
 		}
+		testRes[i].Output = []string{output}
 	}
 
-	return TestResult{}
+	return TestResult{
+		TotalMark:   totalMark,
+		TestResults: testRes,
+	}
 }
-
-// var cmd *exec.Cmd
-// cfg, _ := config.GetConfigInstance()
-
-// // ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.TimeOutSec))
-// // defer cancel()
-// fmt.Print(cfg.TimeOutSec)
-// log := logger.GetLogger()
-// if len(interp) > 0 {
-// 	// cmd = exec.CommandContext(ctx, "python", fName)
-// 	cmd = exec.Command("python", fName)
-// } else {
-// 	cmd = exec.Command(fName) //exec.CommandContext(ctx, fName) //exec.Command(fName)
-// }
-
-// // buffer := bytes.Buffer{}
-// // buffer.Write([]byte("df"))
-// // cmd.Start()
-// // context,
-
-// stdin, err := cmd.StdinPipe()
-// if err != nil {
-// 	log.Error("Error stdin pipo", err)
-// 	return ""
-// }
-// defer stdin.Close()
-// stdout, err := cmd.StdoutPipe()
-// if err != nil {
-// 	log.Error("Error stdout pipo", err)
-// 	return ""
-// }
-// defer stdout.Close()
-
-// // inStr := ""
-// // for _, str := range input {
-// // 	inStr += str
-// // 	// stdin.Write([]byte(str + "\n"))
-// // }
-// // _, err := buffer.Write([]byte(inStr + "\n\n\n")) //stdin.Write([]byte(inStr + "\n\n"))
-
-// // cmd.Stdin = &buffer
-// // cmd.Stdout = os.Stdout
-// // cmd.
-// err = cmd.Start()
-// if err != nil {
-// 	log.Error("Error start", err)
-// 	return ""
-// }
-
-// // buffer.Write([]byte("5\n"))
-// inStr := ""
-// for _, str := range input {
-// 	inStr += str
-// 	// stdin.Write([]byte(str + "\n"))
-// }
-// n, err := stdin.Write([]byte(inStr + "\n5\n"))
-// stdin.Close()
-// fmt.Println("N: ", n)
-// if err != nil {
-// 	log.Error("Error write stdin", err)
-// 	return ""
-// }
-
-// // stdin.Close()
-// // stdin.Write([]byte("\n\n"))
-// // n, err = stdin.Write([]byte("556\n")
-
-// b, err := ioutil.ReadAll(stdout)
-// fmt.Println("Process state: ", cmd.ProcessState)
-// if err != nil {
-// 	log.Error("Error read stdout", err)
-// 	return ""
-// }
-
-// done := make(chan error, 1)
-// go func() {
-// 	done <- cmd.Wait()
-// }()
-// select {
-// case <-time.After(3 * time.Second):
-// 	if err := cmd.Process.Kill(); err != nil {
-// 		log.Error("failed to kill process: ", err)
-// 	}
-// 	log.Info("process killed as timeout reached")
-// case err := <-done:
-// 	if err != nil {
-// 		log.Error("process finished with error = %v", err)
-// 	}
-// 	log.Info("process finished successfully")
-// }
-
-// // if ctx.Err() == context.DeadlineExceeded {
-// // 	fmt.Println("Command timed out")
-// // 	return ""
-// // }
-
-// // if err = cmd.Wait(); err != nil {
-// // 	fmt.Print(err)
-// // 	return ""
-// // }
-// fmt.Println(string(b))
-// return "" //string(b)

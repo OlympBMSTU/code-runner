@@ -1,12 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 
 	"github.com/OlympBMSTU/code-runner/logger"
 )
@@ -29,8 +32,6 @@ type RunnerRecord struct {
 func Compile(record FileRecord) (*CompileResult, error) {
 	log := logger.GetLogger()
 	var compiler, outName string
-	// needCompile := true
-	// var runRec RunnerRecord
 	var res CompileResult
 	res.State = OK
 
@@ -98,6 +99,7 @@ func Compile(record FileRecord) (*CompileResult, error) {
 		} else {
 			res.ErrorInfo = errStr
 		}
+
 		log.Error(res.ErrorInfo, nil)
 		res.State = ERROR_COMPILE
 	}
@@ -117,12 +119,9 @@ func MakeExecutable(record FileRecord) (*RunnerRecord, error) {
 			return nil, err
 		}
 		if res.State != OK {
-			return nil, errors.New("Not compiled")
-
+			return nil, errors.New(res.ErrorInfo)
 		} else {
-			log.Println(res.ErrorInfo)
 			return &res.RunData, nil
-			// return nil, errors.New("Not compiled")
 		}
 	} else {
 		runRec.Interpretator = "python"
@@ -132,40 +131,71 @@ func MakeExecutable(record FileRecord) (*RunnerRecord, error) {
 }
 
 func LoopByFiles(files []FileRecord, answers []Answer) error {
-
+	// userService := GetService()
+	file, err := os.Create("/home/imber/test_result.txt")
+	if err != nil {
+		panic(err)
+	}
 	count_to_run := 0
 	runnerRecords := make([]RunnerRecord, 0)
 	for _, record := range files {
+		dbRes := DbTestResult{}
+		/////////////////////////////////////////////
+		uid, _ := strconv.Atoi(record.UID)
+		exID, _ := strconv.Atoi(record.TASKID)
+		dbRes.UserID = uid
+		dbRes.ExerciseID = exID
+		dbRes.FileNameOriginal = record.FName
+		//////////////////////////////////////////
+
+		compiled := true
+		compilerOutput := ""
 		err := MoveFile(&record)
 		if err != nil {
 			return err
 		}
+
+		dbRes.FIleName = record.FName
 		runnerRecord, err := MakeExecutable(record)
 		if err == nil {
 			count_to_run++
 			runnerRec := *runnerRecord
 			runnerRecords = append(runnerRecords, runnerRec)
 			testData := *FindTestData(answers, record.TASKID)
-			if record.UID == "4126" {
+
+			// testRes := RunTests(runnerRec, testData)
+			var testRes TestResult
+			if record.UID == "982" {
 				fmt.Println(record.FName)
-				RunTests(runnerRec, testData)
+				testRes = RunTests(runnerRec, testData)
 				// fmt.Println(res)
+				// break
 
 			}
-			// fmt.Println(res)
-			// write db
+			dbRes.TestResults = testRes.TestResults
+			dbRes.TotalMark = testRes.TotalMark
 		} else {
+			log.Print(err.Error())
 			// Write db
+			compiled = false
+			compilerOutput = err.Error()
 		}
-		fmt.Println(runnerRecord)
+
+		dbRes.Compiled = compiled
+		dbRes.CompileOutput = compilerOutput
+		bytes, _ := json.Marshal(dbRes)
+
+		if record.UID == "982" { // fmt.Println(string(bytes))
+			fmt.Fprint(file, string(bytes))
+			fmt.Fprint(file, "\n")
+		}
+		// userService.Save(dbRes)
+		// fmt.Println(runnerRecord)
 	}
 
 	fmt.Println("----------------------------------------------")
 	fmt.Println("----------------------------------------------")
 	fmt.Println("----------------------------------------------")
 
-	for _, rec := range runnerRecords {
-		fmt.Println(rec)
-	}
 	return nil
 }

@@ -6,4 +6,9 @@ create table test_results(
     ex_id int,
     mark int,
     error citext
+    compiled bool,
+    compile_output citext,
+    file_name citext,
+    file_name_old citext,
+    run_output jsonb
 )
